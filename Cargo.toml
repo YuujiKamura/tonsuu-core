@@ -1,0 +1,22 @@
+[package]
+name = "shared-core"
+version = "0.1.0"
+edition = "2021"
+description = "Cross-language shared domain logic for tonsuu-checker (WASM + native)"
+authors = ["yuuji"]
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+wasm-bindgen = { version = "0.2", optional = true }
+
+[features]
+default = []
+wasm = ["wasm-bindgen"]
+
+[dev-dependencies]
+serde_json = "1"
