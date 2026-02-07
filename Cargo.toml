@@ -1,8 +1,8 @@
 [package]
-name = "shared-core"
+name = "tonsuu-core"
 version = "0.1.0"
 edition = "2021"
-description = "Cross-language shared domain logic for tonsuu-checker (WASM + native)"
+description = "トン数チェッカー コアライブラリ (WASM + native)"
 authors = ["yuuji"]
 license = "MIT"
 

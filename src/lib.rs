@@ -1,4 +1,4 @@
-//! shared-core: Cross-language domain logic for tonsuu-checker
+//! tonsuu-core: トン数チェッカー コアライブラリ
 //!
 //! This crate provides the core calculation, prompt building, and validation
 //! logic shared between the Rust CLI and TypeScript Web versions.
