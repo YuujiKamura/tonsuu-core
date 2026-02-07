@@ -225,7 +225,7 @@ mod tests {
             slope: Some(0.5),           // above max 0.3
             fill_ratio_l: Some(-0.1),   // below min 0.0
             fill_ratio_w: Some(1.5),    // above max 0.9
-            fill_ratio_z: Some(0.5),    // valid
+            fill_ratio_z: Some(0.5),    // below min 0.7
             packing_density: Some(0.3), // below min 0.5
         };
         let clamped = clamp_params(&params);
@@ -234,7 +234,7 @@ mod tests {
         assert!((clamped.slope.unwrap() - 0.3).abs() < f64::EPSILON);
         assert!((clamped.fill_ratio_l.unwrap() - 0.0).abs() < f64::EPSILON);
         assert!((clamped.fill_ratio_w.unwrap() - 0.9).abs() < f64::EPSILON);
-        assert!((clamped.fill_ratio_z.unwrap() - 0.5).abs() < f64::EPSILON);
+        assert!((clamped.fill_ratio_z.unwrap() - 0.7).abs() < f64::EPSILON);
         assert!((clamped.packing_density.unwrap() - 0.5).abs() < f64::EPSILON);
     }
 
@@ -246,7 +246,7 @@ mod tests {
             slope: Some(0.0),            // exact min
             fill_ratio_l: Some(0.9),     // exact max
             fill_ratio_w: Some(0.0),     // exact min
-            fill_ratio_z: Some(1.0),     // exact max
+            fill_ratio_z: Some(0.7),     // exact min
             packing_density: Some(0.9),  // exact max
         };
         let errors = validate_params(&params);
