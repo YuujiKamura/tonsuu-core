@@ -178,7 +178,7 @@ mod tests {
     #[test]
     fn test_out_of_range_height() {
         let mut params = valid_params();
-        params.height = Some(1.5); // max is 0.8
+        params.height = Some(1.5); // max is 0.6
         let errors = validate_params(&params);
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].field, "height");
@@ -230,7 +230,7 @@ mod tests {
         };
         let clamped = clamp_params(&params);
         assert!((clamped.upper_area.unwrap() - 0.2).abs() < f64::EPSILON);
-        assert!((clamped.height.unwrap() - 0.8).abs() < f64::EPSILON);
+        assert!((clamped.height.unwrap() - 0.6).abs() < f64::EPSILON);
         assert!((clamped.slope.unwrap() - 0.3).abs() < f64::EPSILON);
         assert!((clamped.fill_ratio_l.unwrap() - 0.0).abs() < f64::EPSILON);
         assert!((clamped.fill_ratio_w.unwrap() - 0.9).abs() < f64::EPSILON);
@@ -242,7 +242,7 @@ mod tests {
     fn test_boundary_values_valid() {
         let params = EstimationParams {
             upper_area: Some(0.2),       // exact min
-            height: Some(0.8),           // exact max
+            height: Some(0.6),           // exact max
             slope: Some(0.0),            // exact min
             fill_ratio_l: Some(0.9),     // exact max
             fill_ratio_w: Some(0.0),     // exact min
