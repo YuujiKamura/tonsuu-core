@@ -51,7 +51,7 @@ pub struct FillResponse {
 
 fn default_fill_l() -> f64 { 0.8 }
 fn default_fill_w() -> f64 { 0.7 }
-fn default_taper() -> f64 { 0.85 }
+fn default_taper() -> f64 { 0.75 }
 fn default_packing() -> f64 { 0.7 }
 
 /// Extract and parse JSON from AI response text.
@@ -175,7 +175,7 @@ Some trailing text"#;
         assert!((fill.fill_ratio_l - 0.75).abs() < f64::EPSILON);
         // Defaults
         assert!((fill.fill_ratio_w - 0.7).abs() < f64::EPSILON);
-        assert!((fill.taper_ratio - 0.85).abs() < f64::EPSILON);
+        assert!((fill.taper_ratio - 0.75).abs() < f64::EPSILON);
         assert!((fill.packing_density - 0.7).abs() < f64::EPSILON);
     }
 
