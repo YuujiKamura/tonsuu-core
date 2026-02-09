@@ -26,8 +26,8 @@ pub struct PromptSpec {
     pub truck_specs: HashMap<String, TruckSpec>,
     pub ranges: Ranges,
     pub constants: Constants,
-    // Prompts are present in JSON but not deserialized into Rust —
-    // they are read at runtime by CLI/Web consumers.
+    pub geometry_prompt: String,
+    pub fill_prompt: String,
 }
 
 /// Parameter ranges for box-overlay strategy
