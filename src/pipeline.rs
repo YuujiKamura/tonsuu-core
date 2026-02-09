@@ -76,6 +76,7 @@ pub struct BoxOverlayResult {
     pub volume: f64,
     pub tonnage: f64,
     pub density: f64,
+    pub material_type: String,
     pub reasoning: String,
     pub geometry_runs: Vec<GeometryRunLog>,
     pub fill_runs: Vec<FillRunLog>,
@@ -198,6 +199,7 @@ pub fn analyze_box_overlay(
     let mut taper_list = Vec::new();
     let mut packing_list = Vec::new();
     let mut last_reasoning = String::new();
+    let mut detected_materials: Vec<String> = Vec::new();
     let mut fill_runs = Vec::new();
 
     for _i in 0..config.ensemble_count {
@@ -208,6 +210,11 @@ pub fn analyze_box_overlay(
                     fill_w_list.push(fill.fill_ratio_w);
                     taper_list.push(fill.taper_ratio);
                     packing_list.push(fill.packing_density);
+                    if let Some(ref m) = fill.material_type {
+                        if !m.is_empty() && m != "?" {
+                            detected_materials.push(m.clone());
+                        }
+                    }
                     if let Some(ref r) = fill.reasoning {
                         last_reasoning = r.clone();
                     }
@@ -243,13 +250,17 @@ pub fn analyze_box_overlay(
 
     // ── Step 3: Calculate tonnage ──
 
+    // Use AI-detected material if available, otherwise fall back to config
+    let material_type = mode_string(&detected_materials)
+        .unwrap_or_else(|| config.material_type.clone());
+
     let params = CoreParams {
         height: height_m,
         fill_ratio_l: fill_l,
         fill_ratio_w: fill_w,
         taper_ratio: taper,
         packing_density: packing,
-        material_type: config.material_type.clone(),
+        material_type,
     };
 
     let calc = calculate_tonnage(&params, Some(&config.truck_class));
@@ -264,6 +275,7 @@ pub fn analyze_box_overlay(
         volume: round4(calc.volume),
         tonnage: round2(calc.tonnage),
         density: calc.density,
+        material_type: params.material_type,
         reasoning: last_reasoning,
         geometry_runs,
         fill_runs,
@@ -292,6 +304,21 @@ fn round3(v: f64) -> f64 {
 
 fn round4(v: f64) -> f64 {
     (v * 10000.0).round() / 10000.0
+}
+
+/// Get most common string from a list (mode). Returns None if empty.
+fn mode_string(values: &[String]) -> Option<String> {
+    if values.is_empty() {
+        return None;
+    }
+    let mut counts = std::collections::HashMap::new();
+    for v in values {
+        *counts.entry(v.as_str()).or_insert(0usize) += 1;
+    }
+    counts
+        .into_iter()
+        .max_by_key(|(_, c)| *c)
+        .map(|(v, _)| v.to_string())
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────

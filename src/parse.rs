@@ -46,6 +46,8 @@ pub struct FillResponse {
     #[serde(default = "default_packing")]
     pub packing_density: f64,
     #[serde(default)]
+    pub material_type: Option<String>,
+    #[serde(default)]
     pub reasoning: Option<String>,
 }
 
