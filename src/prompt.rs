@@ -1,95 +1,24 @@
-//! Prompt building from prompt-spec.json
+//! Prompt access (deprecated)
 //!
-//! Constructs AI prompts by interpolating the spec's jsonTemplate
-//! and rangeGuide into the promptFormat template.
+//! Prompts are now stored in prompt-spec.json and read at runtime by each consumer
+//! (CLI reads from file, Web reads from JSON import).
+//! This module is kept for backward compatibility but will be removed in a future version.
 
-use crate::spec::SPEC;
-
-/// Build the core estimation prompt from prompt-spec.json
-///
-/// Replaces `{jsonTemplate}` and `{rangeGuide}` placeholders in
-/// the promptFormat string.
+/// Deprecated: prompts are now in prompt-spec.json, read at runtime
+#[deprecated(note = "Use prompt-spec.json directly. Prompts are no longer compiled into Rust.")]
 pub fn build_core_prompt() -> String {
-    let template_json = serde_json::to_string(&SPEC.json_template)
-        .unwrap_or_else(|_| "{}".to_string());
-
-    SPEC.prompt_format
-        .replace("{jsonTemplate}", &template_json)
-        .replace("{rangeGuide}", &SPEC.range_guide)
-}
-
-/// Get the raw range guide string
-pub fn range_guide() -> &'static str {
-    &SPEC.range_guide
-}
-
-/// Get the JSON template as a string
-pub fn json_template_string() -> String {
-    serde_json::to_string(&SPEC.json_template)
-        .unwrap_or_else(|_| "{}".to_string())
-}
-
-/// Get the JSON template as pretty-printed string (for display)
-pub fn json_template_pretty() -> String {
-    serde_json::to_string_pretty(&SPEC.json_template)
-        .unwrap_or_else(|_| "{}".to_string())
-}
-
-/// WASM-friendly version
-#[cfg(feature = "wasm")]
-use wasm_bindgen::prelude::*;
-
-#[cfg(feature = "wasm")]
-#[wasm_bindgen(js_name = "buildCorePrompt")]
-pub fn build_core_prompt_wasm() -> String {
-    build_core_prompt()
-}
-
-#[cfg(feature = "wasm")]
-#[wasm_bindgen(js_name = "getRangeGuide")]
-pub fn range_guide_wasm() -> String {
-    SPEC.range_guide.clone()
-}
-
-#[cfg(feature = "wasm")]
-#[wasm_bindgen(js_name = "getJsonTemplate")]
-pub fn json_template_wasm() -> String {
-    json_template_string()
+    String::from("DEPRECATED: read prompts from prompt-spec.json at runtime")
 }
 
 #[cfg(test)]
 mod tests {
+    #[allow(deprecated)]
     use super::*;
 
     #[test]
-    fn test_build_core_prompt_contains_json_template() {
+    fn test_deprecated_prompt_returns_message() {
+        #[allow(deprecated)]
         let prompt = build_core_prompt();
-        // Should contain actual JSON values, not placeholders
-        assert!(!prompt.contains("{jsonTemplate}"));
-        assert!(!prompt.contains("{rangeGuide}"));
-        // Should contain recognizable content
-        assert!(prompt.contains("isTargetDetected"));
-        assert!(prompt.contains("upperArea"));
-        assert!(prompt.contains("Output ONLY JSON"));
-    }
-
-    #[test]
-    fn test_build_core_prompt_contains_range_guide() {
-        let prompt = build_core_prompt();
-        // Range guide should have calibration references
-        assert!(prompt.contains("後板"));
-        assert!(prompt.contains("ヒンジ"));
-    }
-
-    #[test]
-    fn test_json_template_string_valid_json() {
-        let json_str = json_template_string();
-        let parsed: Result<serde_json::Value, _> = serde_json::from_str(&json_str);
-        assert!(parsed.is_ok());
-    }
-
-    #[test]
-    fn test_range_guide_not_empty() {
-        assert!(!range_guide().is_empty());
+        assert!(prompt.contains("DEPRECATED"));
     }
 }

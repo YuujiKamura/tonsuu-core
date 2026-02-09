@@ -20,15 +20,13 @@ impl std::fmt::Display for ValidationError {
     }
 }
 
-/// Parameters to validate
+/// Parameters to validate (box-overlay strategy)
 #[derive(Debug, Clone)]
 pub struct EstimationParams {
-    pub upper_area: Option<f64>,
     pub height: Option<f64>,
-    pub slope: Option<f64>,
     pub fill_ratio_l: Option<f64>,
     pub fill_ratio_w: Option<f64>,
-    pub fill_ratio_z: Option<f64>,
+    pub taper_ratio: Option<f64>,
     pub packing_density: Option<f64>,
 }
 
@@ -38,14 +36,8 @@ pub fn validate_params(params: &EstimationParams) -> Vec<ValidationError> {
     let ranges = &SPEC.ranges;
     let mut errors = Vec::new();
 
-    if let Some(v) = params.upper_area {
-        check_range("upperArea", v, &ranges.upper_area, &mut errors);
-    }
     if let Some(v) = params.height {
         check_height_range("height", v, &ranges.height, &mut errors);
-    }
-    if let Some(v) = params.slope {
-        check_range("slope", v, &ranges.slope, &mut errors);
     }
     if let Some(v) = params.fill_ratio_l {
         check_range("fillRatioL", v, &ranges.fill_ratio_l, &mut errors);
@@ -53,8 +45,8 @@ pub fn validate_params(params: &EstimationParams) -> Vec<ValidationError> {
     if let Some(v) = params.fill_ratio_w {
         check_range("fillRatioW", v, &ranges.fill_ratio_w, &mut errors);
     }
-    if let Some(v) = params.fill_ratio_z {
-        check_range("fillRatioZ", v, &ranges.fill_ratio_z, &mut errors);
+    if let Some(v) = params.taper_ratio {
+        check_range("taperRatio", v, &ranges.taper_ratio, &mut errors);
     }
     if let Some(v) = params.packing_density {
         check_range("packingDensity", v, &ranges.packing_density, &mut errors);
@@ -96,12 +88,10 @@ pub fn clamp_to_range(value: f64, min: f64, max: f64) -> f64 {
 pub fn clamp_params(params: &EstimationParams) -> EstimationParams {
     let r = &SPEC.ranges;
     EstimationParams {
-        upper_area: params.upper_area.map(|v| v.clamp(r.upper_area.min, r.upper_area.max)),
         height: params.height.map(|v| v.clamp(r.height.min, r.height.max)),
-        slope: params.slope.map(|v| v.clamp(r.slope.min, r.slope.max)),
         fill_ratio_l: params.fill_ratio_l.map(|v| v.clamp(r.fill_ratio_l.min, r.fill_ratio_l.max)),
         fill_ratio_w: params.fill_ratio_w.map(|v| v.clamp(r.fill_ratio_w.min, r.fill_ratio_w.max)),
-        fill_ratio_z: params.fill_ratio_z.map(|v| v.clamp(r.fill_ratio_z.min, r.fill_ratio_z.max)),
+        taper_ratio: params.taper_ratio.map(|v| v.clamp(r.taper_ratio.min, r.taper_ratio.max)),
         packing_density: params.packing_density.map(|v| v.clamp(r.packing_density.min, r.packing_density.max)),
     }
 }
@@ -116,12 +106,10 @@ pub fn validate_params_wasm(json: &str) -> String {
     #[derive(serde::Deserialize)]
     #[serde(rename_all = "camelCase")]
     struct WasmParams {
-        upper_area: Option<f64>,
         height: Option<f64>,
-        slope: Option<f64>,
         fill_ratio_l: Option<f64>,
         fill_ratio_w: Option<f64>,
-        fill_ratio_z: Option<f64>,
+        taper_ratio: Option<f64>,
         packing_density: Option<f64>,
     }
 
@@ -129,12 +117,10 @@ pub fn validate_params_wasm(json: &str) -> String {
     match parsed {
         Ok(p) => {
             let params = EstimationParams {
-                upper_area: p.upper_area,
                 height: p.height,
-                slope: p.slope,
                 fill_ratio_l: p.fill_ratio_l,
                 fill_ratio_w: p.fill_ratio_w,
-                fill_ratio_z: p.fill_ratio_z,
+                taper_ratio: p.taper_ratio,
                 packing_density: p.packing_density,
             };
             let errors = validate_params(&params);
@@ -159,13 +145,11 @@ mod tests {
 
     fn valid_params() -> EstimationParams {
         EstimationParams {
-            upper_area: Some(0.4),
             height: Some(0.45),
-            slope: Some(0.1),
-            fill_ratio_l: Some(0.9),
-            fill_ratio_w: Some(0.9),
-            fill_ratio_z: Some(0.85),
-            packing_density: Some(0.7),
+            fill_ratio_l: Some(0.8),
+            fill_ratio_w: Some(0.85),
+            taper_ratio: Some(0.9),
+            packing_density: Some(0.8),
         }
     }
 
@@ -178,7 +162,7 @@ mod tests {
     #[test]
     fn test_out_of_range_height() {
         let mut params = valid_params();
-        params.height = Some(1.5); // max is 0.6
+        params.height = Some(1.5); // max is 0.8
         let errors = validate_params(&params);
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].field, "height");
@@ -187,17 +171,26 @@ mod tests {
     #[test]
     fn test_out_of_range_packing_density() {
         let mut params = valid_params();
-        params.packing_density = Some(0.3); // min is 0.5
+        params.packing_density = Some(0.3); // min is 0.7
         let errors = validate_params(&params);
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].field, "packingDensity");
     }
 
     #[test]
+    fn test_out_of_range_taper_ratio() {
+        let mut params = valid_params();
+        params.taper_ratio = Some(0.3); // min is 0.5
+        let errors = validate_params(&params);
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "taperRatio");
+    }
+
+    #[test]
     fn test_multiple_errors() {
         let mut params = valid_params();
-        params.height = Some(-0.1);  // below min
-        params.slope = Some(0.5);     // above max 0.3
+        params.height = Some(-0.1);       // below min
+        params.fill_ratio_l = Some(2.0);  // above max
         let errors = validate_params(&params);
         assert_eq!(errors.len(), 2);
     }
@@ -205,12 +198,10 @@ mod tests {
     #[test]
     fn test_none_params_skip_validation() {
         let params = EstimationParams {
-            upper_area: None,
             height: None,
-            slope: None,
             fill_ratio_l: None,
             fill_ratio_w: None,
-            fill_ratio_z: None,
+            taper_ratio: None,
             packing_density: None,
         };
         let errors = validate_params(&params);
@@ -220,33 +211,27 @@ mod tests {
     #[test]
     fn test_clamp_params() {
         let params = EstimationParams {
-            upper_area: Some(0.1),      // below min 0.2
             height: Some(1.0),          // above max 0.8
-            slope: Some(0.5),           // above max 0.3
-            fill_ratio_l: Some(-0.1),   // below min 0.0
-            fill_ratio_w: Some(1.5),    // above max 0.9
-            fill_ratio_z: Some(0.5),    // below min 0.7
-            packing_density: Some(0.3), // below min 0.5
+            fill_ratio_l: Some(2.0),    // above max 0.9
+            fill_ratio_w: Some(0.3),    // below min 0.7
+            taper_ratio: Some(0.1),     // below min 0.5
+            packing_density: Some(0.3), // below min 0.7
         };
         let clamped = clamp_params(&params);
-        assert!((clamped.upper_area.unwrap() - 0.2).abs() < f64::EPSILON);
-        assert!((clamped.height.unwrap() - 0.6).abs() < f64::EPSILON);
-        assert!((clamped.slope.unwrap() - 0.3).abs() < f64::EPSILON);
-        assert!((clamped.fill_ratio_l.unwrap() - 0.0).abs() < f64::EPSILON);
-        assert!((clamped.fill_ratio_w.unwrap() - 0.9).abs() < f64::EPSILON);
-        assert!((clamped.fill_ratio_z.unwrap() - 0.75).abs() < f64::EPSILON);
-        assert!((clamped.packing_density.unwrap() - 0.5).abs() < f64::EPSILON);
+        assert!((clamped.height.unwrap() - 0.8).abs() < f64::EPSILON);
+        assert!((clamped.fill_ratio_l.unwrap() - 0.9).abs() < f64::EPSILON);
+        assert!((clamped.fill_ratio_w.unwrap() - 0.7).abs() < f64::EPSILON);
+        assert!((clamped.taper_ratio.unwrap() - 0.5).abs() < f64::EPSILON);
+        assert!((clamped.packing_density.unwrap() - 0.7).abs() < f64::EPSILON);
     }
 
     #[test]
     fn test_boundary_values_valid() {
         let params = EstimationParams {
-            upper_area: Some(0.2),       // exact min
-            height: Some(0.6),           // exact max
-            slope: Some(0.0),            // exact min
-            fill_ratio_l: Some(0.9),     // exact max
-            fill_ratio_w: Some(0.0),     // exact min
-            fill_ratio_z: Some(0.75),    // exact min
+            height: Some(0.8),           // exact max
+            fill_ratio_l: Some(0.3),     // exact min
+            fill_ratio_w: Some(0.7),     // exact min
+            taper_ratio: Some(0.5),      // exact min
             packing_density: Some(0.9),  // exact max
         };
         let errors = validate_params(&params);

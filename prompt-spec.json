@@ -1,43 +1,5 @@
 {
-  "version": "1.0.0",
-  "jsonTemplate": {
-    "isTargetDetected": true,
-    "truckType": "?",
-    "licensePlate": null,
-    "materialType": "As殻",
-    "upperArea": 0,
-    "height": 0,
-    "slope": 0,
-    "packingDensity": 0,
-    "fillRatioL": 0,
-    "fillRatioW": 0,
-    "fillRatioZ": 0,
-    "confidenceScore": 0,
-    "reasoning": "describe what you see"
-  },
-  "ranges": {
-    "upperArea": { "min": 0.2, "max": 0.6 },
-    "height": {
-      "min": 0.0, "max": 0.6, "step": 0.05,
-      "calibration": { "後板": 0.30, "ヒンジ": 0.60 }
-    },
-    "slope": { "min": 0.0, "max": 0.3 },
-    "fillRatioL": { "min": 0.0, "max": 0.9 },
-    "fillRatioW": { "min": 0.0, "max": 0.9 },
-    "fillRatioZ": { "min": 0.75, "max": 1.0 },
-    "packingDensity": { "min": 0.5, "max": 0.9 }
-  },
-  "rangeGuide": "upperArea(0.2~0.6) height(0.0~0.6, 0.05m刻みで推定せよ。後板(テールゲート上縁)=0.30m, ヒンジ金具=0.60m。荷山の最高点がどちらの目印の何cm上/下かを見て数値化せよ) slope(0.0~0.3, 荷山の前後方向の高低差m: 手前が低ければ正値) fillRatioL(0.0~0.9, 長さ方向の充填率: ガラは安息角があり荷台端まで満杯にならないため上限0.9) fillRatioW(0.0~0.9, 幅方向の充填率: 同上) fillRatioZ(0.75~1.0, 高さ方向の充填率: 荷台をカチッと満載した錐台形状を1.0とし、実際の山がそこからどれだけ欠けているか。4tダンプで錐台に近い=1.0付近→4t超、山が崩れて少ない=0.7~0.8→3.5t未満。※積載量が少ない場合はZを下げるのではなくheightを下げよ。Zはheightで表される山の「形の崩れ具合」を補正する係数) packingDensity(0.5~0.9, As殻=アスファルト舗装版(厚さ約5cm)の破砕物。表面の見た目で判断せよ: 表面がゴツゴツして破片同士の隙間が目立つ=0.5付近、普通の積載=0.7付近、表面が平坦で隙間が少なく整然としている=0.9付近。破片サイズが大きいほど・雑に投げ込むほど空隙が増え値が下がる。※表面から観察できる範囲で推定すること、内部の空隙は判別不能と割り切ってよい。ただし山が高い＝ボリュームが大きいほど下層は自重で圧縮され空隙が減る。同じ表面の見た目でも、高い山(height≧0.4)はpackingDensityを+0.05~0.10補正せよ) ※fillRatioL/W/Zはそれぞれ独立して推定すること ※materialTypeはAs殻固定、変更不要",
-  "promptFormat": "Output ONLY JSON: {jsonTemplate} Adjust each value based on the image: {rangeGuide}",
-  "calculation": {
-    "defaultBedAreaM2": 6.8,
-    "formula": {
-      "upperAreaM2": "fillRatioW * bedAreaM2",
-      "effectiveHeight": "max(height - slope / 2, 0)",
-      "volume": "(upperAreaM2 + bedAreaM2) / 2 * effectiveHeight",
-      "tonnage": "volume * density * fillRatioZ * packingDensity"
-    }
-  },
+  "version": "2.1.0",
   "materials": {
     "土砂": { "density": 1.8 },
     "As殻": { "density": 2.5 },
@@ -49,5 +11,41 @@
     "4t":  { "bedLength": 3.4, "bedWidth": 2.06, "bedHeight": 0.32, "levelVolume": 2.2, "heapVolume": 2.9, "maxCapacity": 4.0 },
     "増トン": { "bedLength": 4.0, "bedWidth": 2.2, "bedHeight": 0.40, "levelVolume": 3.5, "heapVolume": 4.6, "maxCapacity": 6.5 },
     "10t": { "bedLength": 5.3, "bedWidth": 2.3, "bedHeight": 0.50, "levelVolume": 6.0, "heapVolume": 7.8, "maxCapacity": 10.0 }
+  },
+  "geometryPrompt": "Output ONLY JSON: {\"plateBox\":[x1,y1,x2,y2], \"tailgateTopY\": 0.0, \"tailgateBottomY\": 0.0, \"cargoTopY\": 0.0} This is a rear view of a dump truck carrying construction debris. plateBox = bounding box of the rear license plate (normalized 0-1, [left,top,right,bottom]). tailgateTopY = Y coordinate (normalized 0-1) of the TOP edge of the tailgate (後板上端/rim). tailgateBottomY = Y coordinate (normalized 0-1) of the BOTTOM edge of the tailgate (後板下端). cargoTopY = Y coordinate (normalized 0-1) of the HIGHEST point of the cargo mound. This is NOT the cargo surface near the tailgate — it is the absolute highest pixel of any cargo visible in the image. Cargo often extends well above the tailgate rim. Scan the entire image top-to-bottom to find the highest cargo pixel. The tailgate is the flat metal panel at the rear of the truck bed. tailgateTopY < tailgateBottomY < plateBox[3] (top has smaller Y). cargoTopY < tailgateTopY if cargo is heaped above the rim (common). cargoTopY > tailgateTopY only if cargo is below the rim (rare, nearly empty). All coordinates normalized 0.0-1.0.",
+  "fillPrompt": "Output ONLY JSON: {\"fillRatioL\": 0.0, \"fillRatioW\": 0.0, \"taperRatio\": 0.0, \"packingDensity\": 0.0, \"reasoning\": \"...\"} This is a rear view of a dump truck carrying construction debris (As殻 = asphalt chunks). The cargo forms a mound shape. Estimate the TOP surface and slope: fillRatioL (0.3~0.9): fraction of bed LENGTH covered by cargo AT THE TOP (peak/ridge). From a rear view, the bed length is NOT visible. If you cannot clearly determine fillRatioL, set it to 0.8. fillRatioW (0.7~0.9): fraction of bed WIDTH covered by cargo at ~90% of peak height (slightly below the very top). Visible from rear view — how wide is the mound at 90% height compared to the bed width. 0.8~0.9 = nearly flat top. 0.7~0.8 = moderate mound. taperRatio (0.5~1.0): how much of the bed LENGTH is effectively filled. KEY CUE: Look at the コボレーン (spill guard frames) on top of the side panels. IMPORTANT: Distinguish WHY frames are visible: If frames are visible UNIFORMLY along the full length (same height everywhere), cargo is simply low but fills the full bed → high taper (0.8~1.0). If frames are visible MORE toward the FRONT (cargo slopes down toward front), cargo does not fill the full length → low taper (0.5~0.7). 1.0 = cargo fills full bed length at uniform height. 0.8~0.9 = full length filled, frames visible due to low cargo height. 0.5~0.7 = cargo slopes down toward front, frames increasingly exposed ahead. packingDensity (0.7~0.9): how tightly packed the debris chunks are. As殻 = flat asphalt pavement slabs (~5cm thick). Loosely thrown = 0.7-0.75, moderate = 0.75-0.85, tightly packed = 0.85-0.9.",
+  "multiParamPrompt": {
+    "promptFormat": "Output ONLY JSON: {jsonTemplate} Adjust each value based on the image: {rangeGuide}",
+    "jsonTemplate": {
+      "isTargetDetected": true,
+      "truckType": "?",
+      "licensePlate": null,
+      "materialType": "As殻",
+      "height": 0,
+      "packingDensity": 0,
+      "fillRatioL": 0,
+      "fillRatioW": 0,
+      "fillRatioZ": 0,
+      "confidenceScore": 0,
+      "reasoning": "describe what you see"
+    },
+    "rangeGuide": "height(0.0~0.6, 0.05m刻みで推定せよ。後板(テールゲート上縁)=0.30m, ヒンジ金具=0.60m。荷山の最高点がどちらの目印の何cm上/下かを見て数値化せよ) fillRatioL(0.0~0.9, 長さ方向の充填率: ガラは安息角があり荷台端まで満杯にならないため上限0.9) fillRatioW(0.0~0.9, 上面の充填率: 荷台上面のどれくらいを荷山が覆っているか) fillRatioZ(0.75~1.0, 高さ方向の充填率: 荷台をカチッと満載した錐台形状を1.0とし、実際の山がそこからどれだけ欠けているか。4tダンプで錐台に近い=1.0付近→4t超、山が崩れて少ない=0.7~0.8→3.5t未満。※積載量が少ない場合はZを下げるのではなくheightを下げよ。Zはheightで表される山の「形の崩れ具合」を補正する係数) packingDensity(0.5~0.9, As殻=アスファルト舗装版(厚さ約5cm)の破砕物。表面の見た目で判断せよ: 表面がゴツゴツして破片同士の隙間が目立つ=0.5付近、普通の積載=0.7付近、表面が平坦で隙間が少なく整然としている=0.9付近。破片サイズが大きいほど・雑に投げ込むほど空隙が増え値が下がる) ※fillRatioL/W/Zはそれぞれ独立して推定すること ※materialTypeはAs殻固定、変更不要"
+  },
+  "ranges": {
+    "height": { "min": 0.0, "max": 0.8, "step": 0.05, "calibration": { "後板": 0.30, "ヒンジ": 0.60 } },
+    "fillRatioL": { "min": 0.3, "max": 0.9 },
+    "fillRatioW": { "min": 0.7, "max": 0.9 },
+    "taperRatio": { "min": 0.5, "max": 1.0 },
+    "packingDensity": { "min": 0.7, "max": 0.9 },
+    "fillRatioZ": { "min": 0.75, "max": 1.0 }
+  },
+  "constants": {
+    "PLATE_HEIGHT_M": 0.22,
+    "PLATE_MIN_NORM": 0.03,
+    "BOTTOM_FILL": 0.9,
+    "COMPRESSION_REF_VOLUME": 2.0,
+    "COMPRESSION_FACTOR": 0.15,
+    "EFFECTIVE_PACKING_MIN": 0.7,
+    "EFFECTIVE_PACKING_MAX": 0.95
   }
 }
